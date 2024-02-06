@@ -39,8 +39,8 @@ p2r = lambda pulse: (pulse - 2048) * np.pi / 2048    # pulse counts to radians
 y1_lims = [760, 3900]
 y2_lims = [145, 3300]
 z_lims = [1100, 3640]
-ati_phi_lims = []
-ati_theta_lims = []
+ati_phi_lims = [1100, 2400]
+ati_theta_lims = [1000, 2800]
 
 # class for robot controller
 class TrainingRobotController:
