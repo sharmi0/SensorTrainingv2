@@ -22,7 +22,7 @@ trajectory_filename = 'ellipsoid_newgantry.csv'
 # traj_z_adjust = -1.0 # in mm # NOT USED YET
 
 # set up ethernet for logging
-UDP_IP = "192.168.1.200"  #IP of this PC (make sure ethernet settings are set to this ip)
+UDP_IP = "192.168.1.201"  #IP of this PC (make sure ethernet settings are set to this ip)
 UDP_DEST = "192.168.1.1" #IP of Nucleo Board
 UDP_PORT = 11223
 
