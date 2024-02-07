@@ -17,7 +17,7 @@ from dxl_comms import *
 save_name = "E6_top"
 
 # trajectory filename
-trajectory_filename = 'ellipsoid_newgantry.csv'
+trajectory_filename = 'trajectories/ellipsoid_newgantry.csv'
 # traj_speed = 25.0
 # traj_z_adjust = -1.0 # in mm # NOT USED YET
 
