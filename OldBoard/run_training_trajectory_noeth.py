@@ -119,7 +119,7 @@ class TrainingRobotController:
     '''convert from position value to dxl pulse counts **Z**'''    
     def position_to_pulses_z(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 2048
+        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 2064 #set z offset to be such that 0 is where the sensor touches the pedestal
     
 
     '''convert from pulse counts to position values **X** '''    
