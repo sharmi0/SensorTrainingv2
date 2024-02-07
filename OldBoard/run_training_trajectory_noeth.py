@@ -119,7 +119,7 @@ class TrainingRobotController:
     '''convert from position value to dxl pulse counts **Z**'''    
     def position_to_pulses_z(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 2048
+        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 2064 #set z offset to be such that 0 is where the sensor touches the pedestal
     
 
     '''convert from pulse counts to position values **X** '''    
@@ -258,12 +258,10 @@ class TrainingRobotController:
 
             # wait for a response, then perform logging
             while 1:
-           # could check to make sure dynamixels are in their position before sampling, but should be okay
+            # could check to make sure dynamixels are in their position before sampling, but should be okay
                 # log data
-                    # could clear ethernet messages here with the while loop used in main()
                 if j>=0:
                     # record data
-                    
                     num_data_points = 10
                     for i in range(num_data_points):
                         
@@ -277,7 +275,8 @@ class TrainingRobotController:
            
                         for i in range(len(dxl_ids)):
                             self.present_pos[i] = self.groupSyncRead.getData(dxl_ids[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-                            print('present pos: ', self.present_pos[i])
+                            
+                        # print('present pos: ', self.present_pos)
 
                          # Clear syncwrite parameter storage
                         self.groupSyncRead.clearParam()
@@ -313,10 +312,10 @@ class TrainingRobotController:
                         flt_data.append(float(self.traj[j-2][4])) # ATI beta des in rads
                         flt_data.append(self.present_pos[0]) # gantry x act in pulse counts
                         flt_data.append(self.present_pos[1]) # gantry y1 act in pulse counts
-                        # flt_data.append(self.present_pos[2]) # gantry y2 act in pulse counts
-                        # flt_data.append(self.present_pos[3]) # gantry z act in pulse counts
-                        # flt_data.append(self.present_pos[4]) # gantry theta act in pulse counts
-                        # flt_data.append(self.present_pos[5]) # gantry phi act in pulse counts
+                        flt_data.append(self.present_pos[2]) # gantry y2 act in pulse counts
+                        flt_data.append(self.present_pos[3]) # gantry z act in pulse counts
+                        flt_data.append(self.present_pos[4]) # gantry theta act in pulse counts
+                        flt_data.append(self.present_pos[5]) # gantry phi act in pulse counts
 
                         #TODO: add current dxl positions
                         # convert data for logging
