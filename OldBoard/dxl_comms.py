@@ -20,7 +20,7 @@ DXL2_ID                     = 2                 # Dynamixel#1 ID : 2
 # DXL5_ID                     = 5                 # Dynamixel#1 ID : 5
 # DXL6_ID                     = 6                 # Dynamixel#1 ID : 6
 BAUDRATE                    = 2000000             # Dynamixel default baudrate : 57600
-DEVICENAME                  = '/dev/ttyUSB0' #'COM11' #'/dev/ttyUSB0'    # Check which port is being used on your controller
+DEVICENAME                  = '/dev/ttyUSB2' #'COM11' #'/dev/ttyUSB0'    # Check which port is being used on your controller
                                                 # ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
 
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
@@ -30,16 +30,16 @@ DXL_MAXIMUM_POSITION_VALUE  = 2048+150            # and this value (note that th
 DXL_MOVING_STATUS_THRESHOLD = 10                # Dynamixel moving status threshold
 
 def initComms():
-    # import sys, tty, termios
-    # fd = sys.stdin.fileno()
-    # old_settings = termios.tcgetattr(fd)
-    # def getch():
-    #     try:
-    #         tty.setraw(sys.stdin.fileno())
-    #         ch = sys.stdin.read(1)
-    #     finally:
-    #         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    #     return ch
+    import sys, tty, termios
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    def getch():
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
     # Initialize PortHandler instance
     # Set the port path
     # Get methods and members of PortHandlerLinux or PortHandlerWindows

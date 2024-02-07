@@ -17,7 +17,7 @@ from dxl_comms import *
 save_name = "E6_top"
 
 # trajectory filename
-trajectory_filename = 'trajectories/ellipsoid_newgantry.csv'
+trajectory_filename = 'trajectories/ellipsoid_newgantry1.csv'
 # traj_speed = 25.0
 # traj_z_adjust = -1.0 # in mm # NOT USED YET
 
@@ -41,6 +41,12 @@ y2_lims = [145, 3300]
 z_lims = [1100, 3640]
 ati_phi_lims = [1100, 2400]
 ati_theta_lims = [1000, 2800]
+
+#TODO: add this in
+#x, y, z, offsets in mm
+# x_offset = -1
+# y_offset = 0
+# z_offset = 0
 
 # class for robot controller
 class TrainingRobotController:
@@ -253,7 +259,7 @@ class TrainingRobotController:
 
             # Clear syncwrite parameter storage
             self.groupSyncWrite.clearParam()
-            time.sleep(0.4) #wait for dxl to get to their positions
+            time.sleep(0.7) #wait for dxl to get to their positions
 
 
             # wait for a response, then perform logging
