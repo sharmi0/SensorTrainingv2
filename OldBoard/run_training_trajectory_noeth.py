@@ -110,43 +110,43 @@ class TrainingRobotController:
     '''convert from position value to dxl pulse counts **X**'''    
     def position_to_pulses_x(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 1997
+        return round(position * (max_counts/(np.pi*self.pitch_d))) + 1997
     
     '''convert from position value to dxl pulse counts **Y1**'''    
     def position_to_pulses_y1(self, position):
         max_counts = 4095
-        return 2098 - round(position * (max_counts/(2*np.pi*self.pitch_d)))
+        return 2098 - round(position * (max_counts/(np.pi*self.pitch_d)))
     
     '''convert from position value to dxl pulse counts **Y2**'''    
     def position_to_pulses_y2(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 1992
+        return round(position * (max_counts/(np.pi*self.pitch_d))) + 1992
     
     '''convert from position value to dxl pulse counts **Z**'''    
     def position_to_pulses_z(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(2*np.pi*self.pitch_d))) + 2064 #set z offset to be such that 0 is where the sensor touches the pedestal
+        return round(position * (max_counts/(np.pi*self.pitch_d))) + 2073 #set z offset to be such that 0 is where the sensor touches the pedestal
     
 
     '''convert from pulse counts to position values **X** '''    
     def pulses_to_position_x(self, counts):
         max_counts = 4095
-        return (counts-1997) * ((2*np.pi)/max_counts) * self.pitch_d
+        return (counts-1997) * ((np.pi)/max_counts) * self.pitch_d
     
     '''convert from pulse counts to position values **Y1**'''    
     def pulses_to_position_y1(self, counts):
         max_counts = 4095
-        return (2098-counts) * ((2*np.pi)/max_counts) * self.pitch_d
+        return (2098-counts) * ((np.pi)/max_counts) * self.pitch_d
     
     '''convert from pulse counts to position values **Y2**'''    
     def pulses_to_position_y2(self, counts):
         max_counts = 4095
-        return (counts-1992) * ((2*np.pi)/max_counts) * self.pitch_d
+        return (counts-1992) * ((np.pi)/max_counts) * self.pitch_d
     
     '''convert from pulse counts to position values **Z**'''    
     def pulses_to_position_z(self, counts):
         max_counts = 4095
-        return (counts-2048) * ((2*np.pi)/max_counts) * self.pitch_d
+        return (counts-2048) * ((np.pi)/max_counts) * self.pitch_d
 
     '''add a trajectory point'''
     def add_point(self, traj_data, save_data):
@@ -157,7 +157,7 @@ class TrainingRobotController:
         commands_y2 = self.position_to_pulses_y2(float(traj_data[1]))
         commands_z = self.position_to_pulses_z(float(traj_data[2]))
  
-     
+        
         commands_theta = r2p(float(traj_data[3]))
         commands_phi = r2p(float(traj_data[4]))
 
@@ -169,10 +169,10 @@ class TrainingRobotController:
             or (commands_phi <ati_phi_lims[0] or commands_phi > ati_phi_lims[1]):
 
             self.err_pts.append([commands_x, commands_y1, commands_y2, commands_z, commands_phi, commands_theta])
-
+            
         # commands = [commands_x, commands_y1, commands_y2, commands_z, commands_theta, commands_phi]
         #because orientation of ati sensor changed:
-        commands = [commands_x, commands_y1, commands_y2, commands_z, commands_phi, commands_theta]
+        commands = [commands_x, commands_y1, commands_y2, commands_z, commands_theta, commands_phi]
         print(commands)
 
         # append commands
@@ -213,6 +213,19 @@ class TrainingRobotController:
             dxlz_des = (command[3]) 
             dxlt_des = (command[4])
             dxlp_des = (command[5])
+
+            '''*********************** for debugging **********************'''
+            #command center positions
+            # dxlx_des = 1997
+            # dxly1_des = self.position_to_pulses_y1(0)
+            # dxly2_des = self.position_to_pulses_y2(0)
+            # dxlz_des = 2064
+            # dxlt_des = 2048
+            # dxlp_des = 2048
+            # point_a = self.position_to_pulses_y1(8) #2563
+            # point_b = self.position_to_pulses_y2(8) #1527
+            # print("moving y1 ",point_a, " and y2 ", point_b)
+            '''*********************** for debugging **********************'''
 
             dxl_commands = [dxlx_des, dxly1_des, dxly2_des, dxlz_des, dxlt_des, dxlp_des]
             print(dxl_commands)
@@ -302,7 +315,7 @@ class TrainingRobotController:
                         str_data = data[0]
                         flt_data = str_data.split(",")
                         # print(str_data)
-                        print([flt_data[0:12]])
+                        # print([flt_data[0:12]])
                         # convert data to floats
                         for i in range(len(flt_data)):
                             flt_data[i] = float(flt_data[i])
@@ -322,7 +335,7 @@ class TrainingRobotController:
                         flt_data.append(self.present_pos[3]) # gantry z act in pulse counts
                         flt_data.append(self.present_pos[4]) # gantry theta act in pulse counts
                         flt_data.append(self.present_pos[5]) # gantry phi act in pulse counts
-
+                    
                         #TODO: add current dxl positions
                         # convert data for logging
                         logline = str(flt_data[0])
@@ -372,7 +385,7 @@ if __name__ == "__main__":
     # robot.add_point(traj_data, save_data, speed=traj_speed)
 
     #check points
-    if robot.check_traj:
+    if robot.check_traj():
         # run the trajectory all at once
         print("Starting trajectory.")
         robot.run_trajectory()
