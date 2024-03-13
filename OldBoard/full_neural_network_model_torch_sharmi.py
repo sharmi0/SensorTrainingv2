@@ -54,7 +54,7 @@ def denormalize_model_outputs(predictions, output_max, output_min):
 
 
 # load data
-sensorname = 'E7_3_4'
+sensorname = 'FA6'
 extraname = ''
 save_model = 1
 print(sensorname)
@@ -218,7 +218,7 @@ np.set_printoptions(formatter={'float_kind':float_formatter})
 
 
 # Specify the filename
-filename = os.path.join(desktop_path, sensorname + 'E7_3_4_FULL.txt')
+filename = os.path.join(desktop_path, sensorname + 'FULL.txt')
 with open(filename,'w') as f:
     # bias 1
     f.write('//Bias 1:\n')

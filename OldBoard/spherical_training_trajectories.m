@@ -2,20 +2,20 @@ close all; clear all; clc;
 addpath(genpath('matlab_helpers'))
 
 %% set up data saving
-save_data = 1;
-savename = 'trajectories/spherical_newgantry_tester.csv';
+save_data = 0;
+savename = 'trajectories/spherical_newgantry_trajtest.csv';
 %% generate asterisk pattern at origin
 
 %flag for spherical traj generation top orientation
 top = 1;
 % asterisk parameters
-dx = 0.5; % distance in mm between points along each ray of the asterisk
-N1 = 2; % number of pts along each ray of the asterisk (not including center point)
+dx = 0.75; % distance in mm between points along each ray of the asterisk
+N1 = 1; % number of pts along each ray of the asterisk (not including center point)
 N2 = 2; % number of equally spaced rays of the asterisk
 
 dz0 = 0; % initial compression distance for contact
-dz = -1; % distance in mm between stacked asterisk patterns
-N3 = 3; % number of stacked asterisk patterns in the group
+dz = -0.75; % distance in mm between stacked asterisk patterns
+N3 = 1; % number of stacked asterisk patterns in the group
 
 dw = 10; % starting and ending height from center of asterisk pattern - gantry will move up this distance between every asterisk group
 
@@ -69,7 +69,7 @@ r = 1;
 azimuth_range = [-pi, pi]; % centered at zero
 polar_range = [0, -pi/4] + pi; % centered at pi
 ma = 6-1; % number of azimuthal angles
-mp = 2; % number of polar angles
+mp = 4; % number of polar angles
 
 data_threshold = 1E-10;
 
@@ -96,7 +96,7 @@ xc = b*r*sin(tc).*sin(pc); xc = xc';
 zc = c*r*cos(tc); zc = zc';
 contact_points = [];
 for ii = 1:1:mp
-    if ii==1
+    if ii==1  
         z_layer = [xc(1,ii) yc(1,ii) zc(1,ii) tc(ii,1)' pc(1)']; %vertical layers of ellipsoid
     else
         z_layer = [xc(2:end,ii) yc(2:end,ii) zc(2:end,ii) tc(ii,2:end)' pc(2:end)'];
@@ -135,6 +135,8 @@ contact_data(abs(contact_data)<data_threshold) = 0; %rounds small numbers to zer
 %throw out bad contact points
 %to avoid colliding non-urethane parts of the sensor, we don't want contact points within a
 %certain angle
+theta_lim = pi/9; %restricts how many layers are included
+phi_lim = 6*pi/8; %restricts radially how much of the circular layer is included
 if top == 1
     cdata = size(contact_data);
     cdata = cdata(1);
@@ -147,8 +149,8 @@ if top == 1
     
         %to account for more surface area on the front of the ellipsoid
         %compared to other parts on the shape
-        if t_cur - pi  < -pi/7
-            if abs(p_cur) >  7*pi/8
+        if t_cur - pi  < -theta_lim
+            if abs(p_cur) >  phi_lim
                 mask(jj) = 0;
             end
         end
@@ -183,9 +185,11 @@ xlabel("X"); ylabel("Y"); zlabel("Z");
 % append transformed asterisk and bonus data to final data array
 
 num_contacts = size(contact_data,1);
-% group for each contact, so initialize that array?
+% group for each contact, so initialize that array
 asterisk_data = [];
 new_group = [];
+phi_prev = -pi;
+
 for ii=1:num_contacts
     % calculate rotation
     pitch = contact_data(ii,9);
@@ -199,12 +203,30 @@ for ii=1:num_contacts
     p_i = p_i + ati_surface_offset + [x_mount_offset,y_mount_offset,z_offset]'; %combine offsets
     % modify contact data now that full offsets are calculated
     contact_data(ii,11:13) = p_i';
-
-%     disp([contact_data(ii,11:13), ati_surface_offset', pitch, roll])
-
     new_group = R_i*group(1:3,:) + p_i; % transform asterisk points
+
+    %to avoid collisions, create intermediate positions for problem parts
+    %of the trajectory
+    if top == 1
+        theta = contact_data(ii,4);
+        phi = contact_data(ii,5);
+        
+        if ii > 1
+            phi_prev = contact_data(ii-1,5);
+        end
+    
+        %if points along phi are being skipped
+        if phi_prev - phi > pc(2) - pc(1)
+            %bring the end effector up  to avoid the ATI mount
+            center_group = [x_mount_offset,y_mount_offset,z_offset + 15,0,0,0,-10,theta,phi,0,0,-1,0,0,x_mount_offset,y_mount_offset,z_offset]; %go to origin at a high z value
+            postcontact_prev = [asterisk_data(1:2,end); z_offset + 15;asterisk_data(4:17,end)]; %from the prev position, go up in z
+            precontact = [new_group(1:2,1); z_offset + 15; 0; contact_data(ii,:)']; %reach the new position but at a higher z, before coming down
+            asterisk_data = [asterisk_data,postcontact_prev,center_group',precontact];
+
+        end
+    end
+    
     % add other data
-    aa = repmat(contact_data(ii,:)',1,gl);
     new_group = [new_group; group(4,:); repmat(contact_data(ii,:)',1,gl)]; % contact flags are the same for each group, contact data are the same for each group
     asterisk_data = [asterisk_data, new_group];
 end

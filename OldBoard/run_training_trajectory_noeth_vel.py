@@ -1,6 +1,6 @@
  ### MAIN SCRIPT TO RUN DELTA ROBOT AND DXL STAGE FOR TRAINING TRAJECTORY ###
 
-# imports
+# import
 import os
 import numpy as np
 import socket
@@ -14,10 +14,10 @@ from dxl_comms import *
 
 
 # log save name
-save_name = "E7"
+save_name = "E8"
 
 # trajectory filename
-trajectory_filename = 'trajectories/spherical_newgantry_trainingv1.csv'
+trajectory_filename = 'trajectories/spherical_newgantry_trajtest.csv'
 # traj_speed = 25.0
 # traj_z_adjust = -1.0 # in mm # NOT USED YET
 
@@ -40,7 +40,7 @@ p2r = lambda pulse: (pulse - 2048) * np.pi / 2048    # pulse counts to radians
 x_lims = [0, 2048]
 y1_lims = [500, 3900]
 y2_lims = [145, 3600]
-z_lims = [1100, 3640]
+z_lims = [800, 3340]
 ati_pitch_lims = [1000, 2800]
 ati_roll_lims = [1100, 2565]
 
@@ -146,7 +146,7 @@ class TrainingRobotController:
     '''convert from position value to dxl pulse counts **Z**'''    
     def position_to_pulses_z(self, position):
         max_counts = 4095
-        return round(position * (max_counts/(np.pi*self.pitch_d))) + 2060 #set z offset to be such that 0 is where the sensor touches the pedestal
+        return round(position * (max_counts/(np.pi*self.pitch_d))) + 1740 #set z offset to be such that 0 is where the sensor touches the pedestal
     
 
     '''convert from pulse counts to position values **X** '''    
@@ -167,7 +167,7 @@ class TrainingRobotController:
     '''convert from pulse counts to position values **Z**'''    
     def pulses_to_position_z(self, counts):
         max_counts = 4095
-        return (counts-2060) * ((np.pi)/max_counts) * self.pitch_d
+        return (counts-1740) * ((np.pi)/max_counts) * self.pitch_d
 
     '''add a trajectory point'''
     def add_point(self, traj_data, save_data):
@@ -291,7 +291,7 @@ class TrainingRobotController:
 
             # Clear syncwrite parameter storage
             self.groupSyncWrite.clearParam()
-            # time.sleep(2) #wait for dxl to get to their positions
+            time.sleep(0.05) #wait for dxl to get to their positions
 
             #check to make sure dynamixels are in their position before sampling
             while 1:
@@ -331,7 +331,7 @@ class TrainingRobotController:
                         
                         # recieve data from the system
                         data, addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
-                        print(i)
+                        # print(i)
                         # decode data
                         data = str(data.decode())
                         # first, split data at '\n' char
@@ -352,18 +352,24 @@ class TrainingRobotController:
                         # TODO: check all of this!
                         flt_data.append(float(self.traj[j-2][3])) # desired ATI pitch (rads)
                         flt_data.append(float(self.traj[j-2][4])) # desired ATI roll (rads)
-                        flt_data.append(self.present_pos[0]) # actual x (mm)
-                        flt_data.append(self.present_pos[1]) # actual y1 (mm)   might only need to send one of the y values - they should be the same.
-                        flt_data.append(self.present_pos[2]) # actual y2 (mm)
-                        flt_data.append(self.present_pos[3]) # actual z (mm)
-                        flt_data.append(self.present_pos[4]) # actual ATI pitch (rads)
-                        flt_data.append(self.present_pos[5]) # actual ATI roll (rads)
+                        flt_data.append(self.present_pos[0]) # actual x (counts)
+                        flt_data.append(self.present_pos[1]) # actual y1 (counts)   might only need to send one of the y values - they should be the same.
+                        flt_data.append(self.present_pos[2]) # actual y2 (counts)
+                        flt_data.append(self.present_pos[3]) # actual z (counts)
+                        flt_data.append(self.present_pos[4]) # actual ATI pitch (counts)
+                        flt_data.append(self.present_pos[5]) # actual ATI roll (counts)
                         flt_data.append(self.pulses_to_position_x(self.present_pos[0])) # actual x (mm)
                         flt_data.append(self.pulses_to_position_y1(self.present_pos[1])) # actual y1 (mm)   might only need to send one of the y values - they should be the same.
                         flt_data.append(self.pulses_to_position_y2(self.present_pos[2])) # actual y2 (mm)
                         flt_data.append(self.pulses_to_position_z(self.present_pos[3])) # actual z (mm)
                         flt_data.append(p2r(self.present_pos[4])) # actual ATI pitch (rads)
                         flt_data.append(p2r(self.present_pos[5])) # actual ATI roll (rads)
+                        flt_data.append(dxlx_des) #desired x (counts)
+                        flt_data.append(dxly1_des) #desired y1 (counts)
+                        flt_data.append(dxly2_des) #desired y2 (counts)
+                        flt_data.append(dxlz_des) #desired z (counts)
+                        flt_data.append(dxlt_des) #desired theta (counts)
+                        flt_data.append(dxlp_des) #desired phi (counts)
                         print(flt_data)
                         #TODO: add current dxl positions
                         # convert data for logging
@@ -395,11 +401,9 @@ if __name__ == "__main__":
     # load trajectory file
     try:
         with open(trajectory_filename) as csvfile:
+            # next(csvfile)
             trajectory = csv.reader(csvfile)
-            # for row in trajectory:
-            #     data = row[8:13] 
-            #     robot.add_point(data, data, speed=25.0)
-            # TODO: this is the old import code, need to figure out which set of indices are correct and make traj files match
+            
             for row in trajectory:
                 save_data = [row[3], row[7], row[8] ] # TODO: check this!!
                 # row[12] is pitch (roty), row[13] is roll (rotx)

@@ -10,11 +10,11 @@ addpath(genpath('matlab_helpers'));
 % change this for each sensor!
 
 % load data
-data_ = importdata('to_train/FA5_2_26_2024_10_38.txt'); 
+data_ = importdata('to_train/FA6.txt'); 
 
 
 % sensor identifier to be included in output filenames
-sensor_name = 'FA5';
+sensor_name = 'FA6';
 % should data be saved?
 save_data = 0;
 
@@ -79,7 +79,7 @@ sensor_angles = [contact_data(:,33), contact_data(:,34)]; % CHOOSE
 sensor_angles = rad2deg(sensor_angles);
 % ATI_offset = mean(data_(1:10,2:4),1); % average first 10 samples
 ATI_forces = contact_data(:,2:4); % - ATI_offset_top;
-ATI_forces = [ATI_forces(:,1) ATI_forces(:,2) -ATI_forces(:,3)]; %negate z for correct coordinate transform later on
+% ATI_forces = [ATI_forces(:,1) ATI_forces(:,2) -ATI_forces(:,3)]; %negate z for correct coordinate transform later on
 
 
 % transform forces for neural network ground truth
@@ -88,10 +88,10 @@ for ii=1:size(fingertip_forces,1)
 %     R = roty(sensor_angles(ii,2),'deg')*rotx(sensor_angles(ii,1),'deg')*rotx(180,'deg');
 
 %     R_sensorbase_contact = roty(sensor_angles(ii,2),'deg')*rotx(sensor_angles(ii,1),'deg');
-    R_W_sensorbase = rotx(180,'deg');  %*rotz(180,'deg'); %*roty(90,'deg');
+    R_W_sensorbase = rotz(180,'deg');  %*rotz(180,'deg'); %*roty(90,'deg');
     R = R_W_sensorbase; %*R_sensorbase_contact_top;
 
-    fingertip_forces(ii,:) = (R*ATI_forces(ii,:)')'; % flip sign to get forces applied to sensor, not forces applied to ATI - am I double negating here with line 73?
+    fingertip_forces(ii,:) = -(R*ATI_forces(ii,:)')'; % flip sign to get forces applied to sensor, not forces applied to ATI - am I double negating here with line 73?
 end
 
 
@@ -124,7 +124,7 @@ plot(sensor_angles(:,1)');
 plot(sensor_angles(:,2)'); 
 xline(size(sensor_angles,1),'r:'); 
 % xline(size(sensor_angles_top,1)+size(sensor_angles_45,1),'r:'); hold off;
-legend('Theta','Phi'); xlim([1,size(contact_data,1)]);
+legend('Pitch','Roll'); xlim([1,size(contact_data,1)]);
 title('Sensor Angles'); xlabel('Samples'); ylabel('Angle (deg)');
 
 %ATI forces 
@@ -274,8 +274,8 @@ sgtitle('Correlation of Saturated Pressures');
 %% Filter for excessively large z-forces (Fz > 0)
 
 % Get indices of forces that are too large
-Fz_max_thresh = 1.0; %2.5
-Fz_too_large = (fingertip_forces(:,3)>Fz_max_thresh);
+Fz_max_thresh = -1.0; %2.5
+Fz_too_large = (fingertip_forces(:,3)<Fz_max_thresh);
 Fz_pressures = pressure_readings(Fz_too_large,:);
 
 % Plot pressure reading distributions while z-force is too large
@@ -296,10 +296,10 @@ ATI_forces(Fz_too_large,:) = [];
 %% Filter forces that are too large (Fx, Fy, and Fz)
 
 Ft_mag_thresh = 20;
-Fn_mag_thresh = 30;
+Fn_mag_thresh = 25;
 
 Ft_too_large = (fingertip_forces(:,1)>Ft_mag_thresh)|(fingertip_forces(:,1)<-Ft_mag_thresh)|(fingertip_forces(:,2)>Ft_mag_thresh)|(fingertip_forces(:,2)<-Ft_mag_thresh);
-Fn_too_large = (fingertip_forces(:,3)<-Fn_mag_thresh);
+Fn_too_large = (fingertip_forces(:,3)>Fn_mag_thresh);
 forces_too_large = Ft_too_large|Fn_too_large;
 
 % remove these points from the dataset
@@ -330,7 +330,7 @@ figure(9); clf;
 subplot(4,1,1); hold on;
 plot(sensor_angles(:,1)');
 plot(sensor_angles(:,2)'); hold off;
-legend('Theta','Phi'); xlim([1,size(contact_data,1)]);
+legend('Pitch','Roll'); xlim([1,size(contact_data,1)]);
 title('Sensor Angles'); xlabel('Samples'); ylabel('Angle (deg)');
 
 subplot(4,1,2); hold on; 
@@ -501,7 +501,7 @@ train = 1:num_samples;
 test = randsample(num_samples, floor(num_samples/20));
 train(test) = []; % remove testing samples from training set
 
-save_data = 1;
+save_data = 0;
 if (save_data==1)
     if not(isfolder(['processed_data/',sensor_name]))
         mkdir(['processed_data/',sensor_name]);

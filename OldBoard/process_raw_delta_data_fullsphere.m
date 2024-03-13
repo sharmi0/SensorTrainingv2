@@ -10,12 +10,12 @@ addpath(genpath('matlab_helpers'));
 % change this for each sensor!
 
 % load dat
-data_top = importdata('to_train/E7_new_top.txt'); % 90 deg mount
-data_45 = importdata('to_train/E7_new_45.txt'); % 45 deg mount
-data_front = importdata('to_train/E7_new_front.txt'); % flat mount
+data_top = importdata('to_train/E8_top.txt'); % 90 deg mount
+data_45 = importdata('to_train/E8_45.txt'); % 45 deg mount
+data_front = importdata('to_train/E8_front.txt'); % flat mount
 
 % sensor identifier to be included in output filenames
-sensor_name = 'E7_3_4';
+sensor_name = 'E8_3_10';
 % should data be saved?
 save_data = 0;
 
@@ -92,6 +92,7 @@ for ii=1:length(ATI_offsets_inds_front)
     
     %***********************************************************%
     elseif (ATI_offsets_inds_front(ii)==1)
+        aa = data_front(ii+1:ii+gl-1,2:4) - data_front(ii,2:4);
         data_front(ii+1:ii+gl-1,2:4) = data_front(ii+1:ii+gl-1,2:4) - data_front(ii,2:4);
     end
 end
@@ -215,6 +216,7 @@ contact_data = [contact_data_top; contact_data_45; contact_data_front];
 sensor_angles = [sensor_angles_top; sensor_angles_45; sensor_angles_front];
 ATI_forces = [ATI_forces_top; ATI_forces_45; ATI_forces_front];
 fingertip_forces = [fingertip_forces_top; fingertip_forces_45; fingertip_forces_front];
+
 
 
 %% Initial plot of data
@@ -389,8 +391,8 @@ ATI_forces(Fz_too_large,:) = [];
 
 %% Filter forces that are too large (Fx, Fy, and Fz)
 
-Ft_mag_thresh = 10;
-Fn_mag_thresh = 10;
+Ft_mag_thresh = 20;
+Fn_mag_thresh = 25;
 
 Ft_too_large = (fingertip_forces(:,1)>Ft_mag_thresh)|(fingertip_forces(:,1)<-Ft_mag_thresh)|(fingertip_forces(:,2)>Ft_mag_thresh)|(fingertip_forces(:,2)<-Ft_mag_thresh);
 Fn_too_large = (fingertip_forces(:,3)>Fn_mag_thresh);

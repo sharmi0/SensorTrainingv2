@@ -1,3 +1,4 @@
 /raw_data/*
 /to_train/*
+/to_test/*
 /processed_data/**/*.csv

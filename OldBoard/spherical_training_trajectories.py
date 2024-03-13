@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D 
-
+import math
 # set up data saving
 save_data = 1
 check_data = 1 #flag to check whether trajectory will be within bounds
 top = 1 # flag for spherical traj generation top orientation
-savename = 'trajectories/pyspherical_newgantry_tester.csv'
+savename = 'trajectories/pyspherical_newgantry_test.csv'
 
 #********************* function definitions for trajectory*****************************
 '''takes in unit normals and returns pitch and roll euler angles'''    
@@ -24,6 +24,9 @@ def calc_pr(rowVec):
     
     # calculate roll
     roll = x_sgn * np.arccos(np.diag(proj_zy @ rowVec.T).real)
+    for i in range(len(roll)):
+        if np.isnan(roll[i]):
+            roll[i] = 0.0
     
     prMat = np.column_stack((pitch, roll))
     return prMat
@@ -133,14 +136,15 @@ def pulses_to_position_z(counts):
 # generate asterisk pattern at origin
 
 # asterisk parameters
-dx = 0.5  # distance in mm between points along each ray of the asterisk
-N1 = 2  # number of pts along each ray of the asterisk (not including center point)
+dx = 0.75  # distance in mm between points along each ray of the asterisk
+N1 = 1  # number of pts along each ray of the asterisk (not including center point)
 N2 = 2  # number of equally spaced rays of the asterisk
 dz0 = 0  # initial compression distance for contact
-dz = -1  # distance in mm between stacked asterisk patterns
-N3 = 3  # number of stacked asterisk patterns in the group
+dz = -0.75  # distance in mm between stacked asterisk patterns
+N3 = 1  # number of stacked asterisk patterns in the group
 dw = 10  # starting and ending height from center of asterisk pattern - gantry will move up this distance between every asterisk group
-
+ma = 6 - 1  # number of azimuthal angles
+mp = 4  # number of polar angles
 
 # single asterisk group
 rl = 2 * N1  # ray length
@@ -188,8 +192,7 @@ r = 1
 # contact point parameters - testing
 azimuth_range = [-np.pi, np.pi]  # centered at zero
 polar_range = [0 + np.pi , -np.pi/4 + np.pi] # centered at pi
-ma = 6 - 1  # number of azimuthal angles
-mp = 2  # number of polar angles
+
 data_threshold = 1E-10
 # just for sensor surface
 n = 60  # number of points used to visualize sensor surface
@@ -236,10 +239,13 @@ p_offsets = np.column_stack((p_offsets[:, 0], p_offsets[:, 1], p_offsets[:, 2]))
 # [x, y, z, t, p, nx, ny, nz, npitch, nroll, x_offset, y_offset, z_offset]
 contact_data = np.column_stack((contact_points, normals, npitch_nroll, p_offsets))
 contact_data[np.abs(contact_data) < data_threshold] = 0  # rounds small numbers to zero
+
 # throw out bad contact points
 # to avoid colliding non-urethane parts of the sensor, we don't want contact points within a
 # certain angle
 if top == 1:
+    theta_lim = np.pi/9
+    phi_lim = 6*np.pi/8
     cdata = contact_data.shape[0]
     mask = np.ones((cdata, 1))
     for jj in range(cdata):
@@ -247,8 +253,8 @@ if top == 1:
         p_cur = contact_data[jj, 4]
         # to account for more surface area on the front of the ellipsoid
         # compared to other parts on the shape
-        if t_cur - np.pi < -np.pi/7:
-            if np.abs(p_cur) > 7*np.pi/8:
+        if t_cur - np.pi < -theta_lim:
+            if np.abs(p_cur) > phi_lim:
                 mask[jj] = 0
     contact_data = contact_data[mask.flatten().astype(bool), :]
     contact_points = contact_points[mask.flatten().astype(bool), :]
@@ -279,8 +285,9 @@ plt.show()
 
 # transform asterisk patterns
 num_contacts = contact_data.shape[0]
-asterisk_data = []
+asterisk_data = np.zeros((17,1))
 new_group = []
+phi_prev = -np.pi
 for ii in range(num_contacts):
     pitch = contact_data[ii,8]
     roll = contact_data[ii,9]
@@ -291,10 +298,26 @@ for ii in range(num_contacts):
     p_i = p_i + ati_surface_offset + np.array([x_offset, y_offset, z_offset]).reshape(-1,1)
     contact_data[ii,10:13] = p_i.T
     new_group = np.dot(R_i, group[0:3,:]) + p_i
+
+    if top == 1:
+        theta = contact_data[ii,3]
+        phi = contact_data[ii,4]
+
+        if ii>0:
+            phi_prev = contact_data[ii-1,4]
+
+        if phi_prev - phi > pc[1] - pc[0]:
+            center_group = np.array([x_offset,y_offset,z_offset + 15,0,0,0,-10,theta,phi,0,0,-1,0,0,x_offset,y_offset,z_offset]) #go to origin at a high z value
+            postcontact_prev =np.concatenate((asterisk_data[0:2,-1],[z_offset + 15],asterisk_data[3:17,-1])) #from the prev position, go up in z
+            precontact = np.concatenate((new_group[0:2,0], [z_offset + 15], [0], contact_data[ii,:])) #reach the new position but at a higher z, before coming down
+            asterisk_data = np.concatenate((asterisk_data,postcontact_prev.reshape((17,1)),(center_group.T).reshape((17,1)),precontact.reshape((17,1))), axis = 1)
+
+
     repeated_data = np.tile(contact_data[ii].reshape((13,1)), (1,gl))
     new_group = np.concatenate((new_group, group[3, :].reshape(1, -1), repeated_data), axis=0)
-    asterisk_data.append(new_group)
-asterisk_data = np.concatenate(asterisk_data, axis=1)
+    asterisk_data = np.concatenate((asterisk_data, new_group),axis =1 )
+
+# asterisk_data = np.concatenate(asterisk_data, axis=1)
 
 # plot all asterisk points
 start = 1 + gl
@@ -317,7 +340,7 @@ ax.grid(True)
 plt.show()
 
 # store data
-asterisk_data = np.hstack((np.zeros((17,1)), asterisk_data, np.zeros((17,1))))
+asterisk_data = np.hstack((asterisk_data, np.zeros((17,1))))
 asterisk_data[2,0] = 10
 asterisk_data[2,-1] = 10
 asterisk_data = asterisk_data.T
@@ -372,16 +395,5 @@ header = [f'N1: {N1}', f'N2: {N2}', f'N3: {N3}', \
 delimiter = ", "
 header_str = delimiter.join(header)
 
-# Calculate the difference in lengths between header and asterisk data columns
-# header_len = len(header)
-# asterisk_len = asterisk_data.shape[1]
-# padding_width = asterisk_len - header_len
-
-# # Pad the header with zeros
-# padded_header = np.pad(header, (0, padding_width), mode='constant', constant_values='0')
-# print(padded_header)
-
-# asterisk_data_with_header = np.vstack([padded_header, asterisk_data])
-
 if save_data:
-    np.savetxt(savename, asterisk_data, delimiter=',',header=header_str)
+    np.savetxt(savename, asterisk_data, delimiter=',',fmt ='%f',header=header_str)
